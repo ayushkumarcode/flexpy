@@ -332,6 +332,7 @@ server.tool(
           totalQuestions: questions.length,
           players: [],
           leaderboard: [],
+          playBaseUrl: process.env.MCP_URL?.replace("/mcp", "") || "https://shy-sun-u5wa2.run.mcp-use.com",
         },
         output: text(`Game "${title}" created with ${questions.length} questions! Join code: ${joinCode}. Players can scan the QR code or go to the join URL.`),
       });

@@ -34,6 +34,7 @@ const propSchema = z.object({
   currentQuestionData: questionSchema.nullable().optional(),
   players: z.array(playerSchema),
   leaderboard: z.array(playerSchema),
+  playBaseUrl: z.string().optional(),
 });
 
 export const widgetMetadata: WidgetMetadata = {
@@ -123,7 +124,8 @@ const TriviaGame: React.FC = () => {
   const textPrimary = isDark ? "text-white" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-400" : "text-gray-500";
 
-  const playUrl = `${window.location.origin}/play.html?join=${props.joinCode}`;
+  const baseUrl = props.playBaseUrl || "https://shy-sun-u5wa2.run.mcp-use.com";
+  const playUrl = `${baseUrl}/play.html?join=${props.joinCode}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&data=${encodeURIComponent(playUrl)}`;
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
