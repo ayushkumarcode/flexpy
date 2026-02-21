@@ -1,0 +1,32 @@
+{
+  "name": "collabengine",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Collaborative MCP App Engine - create shared widgets from natural language",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "mcp-use build",
+    "dev": "mcp-use dev",
+    "start": "mcp-use start",
+    "deploy": "mcp-use deploy"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "mcp-use": "latest",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.17",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  }
+}

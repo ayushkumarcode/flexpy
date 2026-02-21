@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Join Game</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f23;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container { width: 100%; max-width: 420px; padding: 24px; }
+    h1 { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #94a3b8; }
+    .input-group input {
+      width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #1e293b;
+      background: #1e293b; color: white; font-size: 18px; font-weight: 600;
+      text-align: center; text-transform: uppercase; letter-spacing: 2px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .input-group input:focus { border-color: #6366f1; }
+    .input-group input::placeholder { color: #475569; text-transform: none; letter-spacing: normal; }
+    .name-input { text-transform: none !important; letter-spacing: normal !important; }
+    .btn {
+      width: 100%; padding: 16px; border-radius: 12px; border: none;
+      font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+    .btn-primary:disabled { background: #374151; cursor: not-allowed; transform: none; }
+    .btn-answer {
+      padding: 20px; margin-bottom: 12px; border-radius: 16px; border: none;
+      font-size: 16px; font-weight: 600; cursor: pointer; color: white;
+      transition: all 0.15s; text-align: center; width: 100%;
+    }
+    .btn-answer:active { transform: scale(0.97); }
+    .btn-red { background: #ef4444; }
+    .btn-blue { background: #3b82f6; }
+    .btn-yellow { background: #eab308; color: #1a1a2e; }
+    .btn-green { background: #22c55e; }
+    .btn-answer.selected { opacity: 0.6; outline: 3px solid white; }
+    .btn-answer:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { text-align: center; padding: 40px 0; }
+    .status .emoji { font-size: 64px; margin-bottom: 16px; }
+    .status h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .status p { color: #94a3b8; }
+    .score-display {
+      text-align: center; padding: 20px; background: #1e293b;
+      border-radius: 16px; margin-bottom: 24px;
+    }
+    .score-display .score { font-size: 48px; font-weight: 800; color: #6366f1; }
+    .score-display .label { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+    .result { text-align: center; padding: 24px; border-radius: 16px; margin-bottom: 16px; }
+    .result.correct { background: #065f46; }
+    .result.wrong { background: #7f1d1d; }
+    .question-text {
+      font-size: 20px; font-weight: 700; text-align: center;
+      margin-bottom: 24px; line-height: 1.4;
+    }
+    .q-number { color: #6366f1; font-size: 14px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Join Screen -->
+    <div id="join-screen">
+      <h1>Join Game</h1>
+      <p class="subtitle">Enter the game code to play</p>
+      <div class="input-group">
+        <label>Game Code</label>
+        <input type="text" id="code-input" placeholder="e.g. YC42" maxlength="10" />
+      </div>
+      <div class="input-group">
+        <label>Your Name</label>
+        <input type="text" id="name-input" class="name-input" placeholder="Enter your name" maxlength="20" />
+      </div>
+      <button class="btn btn-primary" id="join-btn" onclick="joinGame()">Join</button>
+    </div>
+
+    <!-- Waiting Screen -->
+    <div id="waiting-screen" class="hidden">
+      <div class="status">
+        <div class="emoji">⏳</div>
+        <h2>You're in!</h2>
+        <p>Waiting for the host to start the game...</p>
+        <p style="margin-top: 16px; font-weight: 600;" id="player-name-display"></p>
+      </div>
+    </div>
+
+    <!-- Question Screen -->
+    <div id="question-screen" class="hidden">
+      <div class="score-display">
+        <div class="score" id="score-display">0</div>
+        <div class="label">points</div>
+      </div>
+      <div class="q-number" id="q-number"></div>
+      <div class="question-text" id="question-text"></div>
+      <div id="options-container"></div>
+    </div>
+
+    <!-- Result Screen (between questions) -->
+    <div id="result-screen" class="hidden">
+      <div id="result-box" class="result">
+        <div style="font-size: 48px; margin-bottom: 12px;" id="result-emoji"></div>
+        <h2 id="result-text"></h2>
+        <p id="result-detail" style="color: #d1d5db; margin-top: 8px;"></p>
+      </div>
+      <div class="score-display">
+        <div class="score" id="result-score">0</div>
+        <div class="label">total points</div>
+      </div>
+      <p style="text-align: center; color: #94a3b8;">Waiting for next question...</p>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="hidden">
+      <div class="status">
+        <div class="emoji">🏆</div>
+        <h2>Game Over!</h2>
+        <div class="score-display" style="margin-top: 24px;">
+          <div class="score" id="final-score">0</div>
+          <div class="label">final score</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://hcddekcllbhiiazrcmhi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZGRla2NsbGJoaWlhenJjbWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDY1NzcsImV4cCI6MjA4NzI4MjU3N30.PxcMSJuqIl8FbHbrkdfI8qsn4JocLPrCAM5TN7ZYYlo";
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let gameId = null;
+    let playerId = null;
+    let playerName = "";
+    let myScore = 0;
+    let questions = [];
+    let currentQ = 0;
+    let questionStartTime = 0;
+    let answered = false;
+
+    // Check URL params for pre-filled code
+    const params = new URLSearchParams(window.location.search);
+    const preCode = params.get("code");
+    if (preCode) document.getElementById("code-input").value = preCode;
+
+    function showScreen(id) {
+      ["join-screen", "waiting-screen", "question-screen", "result-screen", "gameover-screen"]
+        .forEach(s => document.getElementById(s).classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    async function joinGame() {
+      const code = document.getElementById("code-input").value.trim().toUpperCase();
+      playerName = document.getElementById("name-input").value.trim();
+      if (!code || !playerName) return alert("Enter both code and name");
+
+      document.getElementById("join-btn").disabled = true;
+      document.getElementById("join-btn").textContent = "Joining...";
+
+      // Find the game
+      const { data: game, error: err } = await sb
+        .from("games").select("*").eq("join_code", code).single();
+
+      if (err || !game) {
+        alert("Game not found! Check the code.");
+        document.getElementById("join-btn").disabled = false;
+        document.getElementById("join-btn").textContent = "Join";
+        return;
+      }
+
+      gameId = game.id;
+
+      // Join as player
+      const { data: player, error: pErr } = await sb
+        .from("players").insert({ game_id: gameId, name: playerName, score: 0 }).select().single();
+
+      if (pErr) {
+        alert("Failed to join: " + pErr.message);
+        document.getElementById("join-btn").disabled = false;
+        document.getElementById("join-btn").textContent = "Join";
+        return;
+      }
+
+      playerId = player.id;
+
+      // Load questions
+      const { data: qs } = await sb
+        .from("questions").select("*").eq("game_id", gameId).order("order_index");
+      questions = qs || [];
+
+      document.getElementById("player-name-display").textContent = playerName;
+
+      // If game already active, jump to current question
+      if (game.status === "active") {
+        currentQ = game.current_question;
+        showQuestion();
+      } else {
+        showScreen("waiting-screen");
+      }
+
+      // Subscribe to game state changes
+      sb.channel(`game-play-${gameId}`)
+        .on("postgres_changes", {
+          event: "UPDATE", schema: "public", table: "games",
+          filter: `id=eq.${gameId}`,
+        }, (payload) => {
+          const g = payload.new;
+          if (g.status === "active") {
+            if (g.current_question !== currentQ || document.getElementById("waiting-screen").classList.contains("hidden") === false) {
+              currentQ = g.current_question;
+              if (currentQ < questions.length) {
+                showQuestion();
+              }
+            }
+          }
+          if (g.status === "finished") {
+            showScreen("gameover-screen");
+            document.getElementById("final-score").textContent = myScore;
+          }
+        })
+        .subscribe();
+    }
+
+    function showQuestion() {
+      if (currentQ >= questions.length) {
+        showScreen("gameover-screen");
+        document.getElementById("final-score").textContent = myScore;
+        return;
+      }
+
+      answered = false;
+      questionStartTime = Date.now();
+      const q = questions[currentQ];
+
+      document.getElementById("q-number").textContent = `Question ${currentQ + 1} of ${questions.length}`;
+      document.getElementById("question-text").textContent = q.question_text;
+      document.getElementById("score-display").textContent = myScore;
+
+      const container = document.getElementById("options-container");
+      container.innerHTML = "";
+      const btnClasses = ["btn-red", "btn-blue", "btn-yellow", "btn-green"];
+
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.className = `btn-answer ${btnClasses[i]}`;
+        btn.textContent = opt;
+        btn.onclick = () => submitAnswer(i);
+        container.appendChild(btn);
+      });
+
+      showScreen("question-screen");
+    }
+
+    async function submitAnswer(selectedIndex) {
+      if (answered) return;
+      answered = true;
+
+      const timeMs = Date.now() - questionStartTime;
+      const q = questions[currentQ];
+      const isCorrect = selectedIndex === q.correct_index;
+
+      // Highlight selected
+      const buttons = document.querySelectorAll(".btn-answer");
+      buttons.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === selectedIndex) btn.classList.add("selected");
+      });
+
+      // Score: faster = more points (max 1000, min 100 if correct)
+      let points = 0;
+      if (isCorrect) {
+        points = Math.max(100, Math.round(1000 - (timeMs / 30)));
+        myScore += points;
+      }
+
+      // Save answer
+      await sb.from("answers").insert({
+        question_id: q.id,
+        player_id: playerId,
+        selected_index: selectedIndex,
+        is_correct: isCorrect,
+        time_ms: timeMs,
+      });
+
+      // Update player score
+      if (isCorrect) {
+        await sb.from("players").update({ score: myScore }).eq("id", playerId);
+      }
+
+      // Show result
+      setTimeout(() => {
+        document.getElementById("result-emoji").textContent = isCorrect ? "✅" : "❌";
+        document.getElementById("result-text").textContent = isCorrect ? `+${points} points!` : "Wrong!";
+        document.getElementById("result-detail").textContent = isCorrect
+          ? (q.fun_fact || "Nice one!")
+          : `Correct answer: ${q.options[q.correct_index]}${q.fun_fact ? " — " + q.fun_fact : ""}`;
+        document.getElementById("result-score").textContent = myScore;
+        showScreen("result-screen");
+      }, 800);
+    }
+  </script>
+</body>
+</html>
