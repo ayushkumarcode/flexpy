@@ -12,6 +12,7 @@
     "deploy": "mcp-use deploy"
   },
   "dependencies": {
+    "@playwright/test": "^1.58.2",
     "@supabase/supabase-js": "^2.49.1",
     "mcp-use": "latest",
     "react": "^19.2.0",

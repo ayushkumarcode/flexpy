@@ -123,7 +123,7 @@ const TriviaGame: React.FC = () => {
   const textPrimary = isDark ? "text-white" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-400" : "text-gray-500";
 
-  const playUrl = `${window.location.origin}/play.html?code=${props.joinCode}`;
+  const playUrl = `${window.location.origin}/play.html?join=${props.joinCode}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&data=${encodeURIComponent(playUrl)}`;
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);

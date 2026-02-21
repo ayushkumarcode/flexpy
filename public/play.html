@@ -152,7 +152,7 @@
 
     // Check URL params for pre-filled code
     const params = new URLSearchParams(window.location.search);
-    const preCode = params.get("code");
+    const preCode = params.get("join") || params.get("code");
     if (preCode) document.getElementById("code-input").value = preCode;
 
     function showScreen(id) {

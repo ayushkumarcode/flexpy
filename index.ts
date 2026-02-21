@@ -54,7 +54,7 @@ server.tool(
           items: [],
           members: [{ name: user_name, color }],
         },
-        message: `Created board "${title}" with share code **${shareCode}**. Others can join by saying "join board ${shareCode}".`,
+        output: text(`Created board "${title}" with share code ${shareCode}. Others can join by saying "join board ${shareCode}".`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -111,7 +111,7 @@ server.tool(
           items: items || [],
           members: members || [],
         },
-        message: `Joined "${board.title}"! ${members?.length || 1} people are collaborating on this board.`,
+        output: text(`Joined "${board.title}"! ${members?.length || 1} people are collaborating on this board.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -171,7 +171,7 @@ server.tool(
           items: allItems || [],
           members: members || [],
         },
-        message: `Added ${newItems.length} item(s) to ${column}.`,
+        output: text(`Added ${newItems.length} item(s) to ${column}.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -209,7 +209,7 @@ server.tool(
           items: items || [],
           members: members || [],
         },
-        message: `Board "${board.title}" has ${items?.length || 0} items across ${(board.columns as string[]).length} columns. ${members?.length || 0} collaborators.`,
+        output: text(`Board "${board.title}" has ${items?.length || 0} items across ${(board.columns as string[]).length} columns. ${members?.length || 0} collaborators.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -268,7 +268,7 @@ server.tool(
           items: items || [],
           members: members || [],
         },
-        message: "Item updated.",
+        output: text("Item updated."),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -333,7 +333,7 @@ server.tool(
           players: [],
           leaderboard: [],
         },
-        message: `Game "${title}" created with ${questions.length} questions! Join code: **${joinCode}**. Players can scan the QR code or go to the join URL.`,
+        output: text(`Game "${title}" created with ${questions.length} questions! Join code: ${joinCode}. Players can scan the QR code or go to the join URL.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -374,7 +374,7 @@ server.tool(
           players: players || [],
           leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
         },
-        message: "Game started! Question 1 is live.",
+        output: text("Game started! Question 1 is live."),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -420,7 +420,7 @@ server.tool(
             players: players || [],
             leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
           },
-          message: "Game over! Here's the final leaderboard.",
+          output: text("Game over! Here's the final leaderboard."),
         });
       }
 
@@ -439,7 +439,7 @@ server.tool(
           players: players || [],
           leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
         },
-        message: `Question ${nextQ + 1} of ${questions?.length}!`,
+        output: text(`Question ${nextQ + 1} of ${questions?.length}!`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -480,7 +480,7 @@ server.tool(
           players: players || [],
           leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
         },
-        message: `Game "${game.title}" - ${game.status}. ${players?.length || 0} players. Question ${game.current_question + 1}/${questions?.length || 0}.`,
+        output: text(`Game "${game.title}" - ${game.status}. ${players?.length || 0} players. Question ${game.current_question + 1}/${questions?.length || 0}.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
