@@ -500,13 +500,17 @@ server.tool(
 
 // Serve player page — public/ is not auto-served by mcp-use
 server.app.get("/play.html", (c) => {
-  try {
-    // dist/index.js → ../public/play.html
-    const html = readFileSync(join(__dir, "..", "public", "play.html"), "utf-8");
-    return c.html(html);
-  } catch {
-    return c.text("Not found", 404);
+  const attempts = [
+    join(process.cwd(), "public", "play.html"),
+    join(__dir, "..", "public", "play.html"),
+    join(__dir, "public", "play.html"),
+  ];
+  for (const p of attempts) {
+    try {
+      return c.html(readFileSync(p, "utf-8"));
+    } catch {}
   }
+  return c.text(`play.html not found. cwd=${process.cwd()} dir=${__dir}`, 404);
 });
 
 // ============================================================================
