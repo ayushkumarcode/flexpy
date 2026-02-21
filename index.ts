@@ -1,6 +1,11 @@
 import { MCPServer, widget, text, error } from "mcp-use/server";
 import { z } from "zod";
 import { supabase, generateCode, randomColor } from "./lib/supabase.js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dir = dirname(fileURLToPath(import.meta.url));
 
 const server = new MCPServer({
   name: "collabengine",
@@ -488,6 +493,21 @@ server.tool(
     }
   }
 );
+
+// ============================================================================
+// STATIC FILES
+// ============================================================================
+
+// Serve player page — public/ is not auto-served by mcp-use
+server.app.get("/play.html", (c) => {
+  try {
+    // dist/index.js → ../public/play.html
+    const html = readFileSync(join(__dir, "..", "public", "play.html"), "utf-8");
+    return c.html(html);
+  } catch {
+    return c.text("Not found", 404);
+  }
+});
 
 // ============================================================================
 // START SERVER
