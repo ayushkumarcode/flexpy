@@ -337,7 +337,7 @@ server.tool(
           totalQuestions: questions.length,
           players: [],
           leaderboard: [],
-          playBaseUrl: process.env.PLAY_BASE_URL || "https://mcp-m61wir48f7my.fly.dev",
+          playBaseUrl: process.env.PLAY_BASE_URL || "https://ayushkumarcode.github.io/flexpy",
         },
         output: text(`Game "${title}" created with ${questions.length} questions! Join code: ${joinCode}. Players can scan the QR code or go to the join URL.`),
       });
