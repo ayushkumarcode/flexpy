@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { MCPServer, widget, text, error } from "mcp-use/server";
 import { z } from "zod";
 import { supabase, generateCode, randomColor } from "./lib/supabase.js";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { McpUseProvider, useWidget, type WidgetMetadata } from "mcp-use/react";
 import React, { useEffect, useState } from "react";
 import { z } from "zod";

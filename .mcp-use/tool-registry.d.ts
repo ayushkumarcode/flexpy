@@ -1,6 +1,6 @@
 // Auto-generated tool registry types - DO NOT EDIT MANUALLY
 // This file is regenerated whenever tools are added, removed, or updated during development
-// Generated at: 2026-02-21T21:44:57.818Z
+// Generated at: 2026-02-22T00:43:34.160Z
 
 declare module "mcp-use/react" {
   interface ToolRegistry {
@@ -28,12 +28,20 @@ declare module "mcp-use/react" {
       input: { "share_code": string; "user_name": string };
       output: Record<string, unknown>;
     };
+    "join-game": {
+      input: { "join_code": string; "player_name": string };
+      output: Record<string, unknown>;
+    };
     "next-question": {
       input: { "game_id": string };
       output: Record<string, unknown>;
     };
     "start-game": {
       input: { "game_id": string };
+      output: Record<string, unknown>;
+    };
+    "submit-answer": {
+      input: { "game_id": string; "player_id": string; "question_id": string; "selected_index": number };
       output: Record<string, unknown>;
     };
     "update-item": {
