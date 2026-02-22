@@ -135,7 +135,7 @@ server.tool(
       items: z.array(z.object({
         title: z.string().describe("Item title, e.g. 'United $650 direct'"),
         description: z.string().optional().describe("Item description"),
-        added_by: z.string().describe("Name of the person adding this"),
+        added_by: z.string().describe("Name of the person adding this — use the user's real name from context (e.g. from the board creation step or conversation), NOT 'Claude'"),
         metadata: z.record(z.any()).optional().describe("Extra data like price, link, airline, etc"),
         link: z.string().optional().describe("External link (booking page, product page)"),
       })),
