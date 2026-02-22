@@ -59,7 +59,7 @@ server.tool(
           items: [],
           members: [{ name: user_name, color }],
         },
-        output: text(`Created board "${title}" with share code ${shareCode}. Others can join by saying "join board ${shareCode}".`),
+        output: text(`Created board "${title}" with share code ${shareCode}. Board ID: ${board.id}. Use this board ID when calling add-items. Others can join by saying "join board ${shareCode}".`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -116,7 +116,7 @@ server.tool(
           items: items || [],
           members: members || [],
         },
-        output: text(`Joined "${board.title}"! ${members?.length || 1} people are collaborating on this board.`),
+        output: text(`Joined "${board.title}"! Board ID: ${board.id}. ${members?.length || 1} people are collaborating. Use this board ID when calling add-items.`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);

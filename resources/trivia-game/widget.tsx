@@ -151,7 +151,14 @@ const TriviaGame: React.FC = () => {
               <p className={`font-mono text-2xl font-bold ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
                 {props.joinCode}
               </p>
-              <p className={`text-xs mt-2 ${textSecondary}`}>Scan QR or visit the URL to join</p>
+              <a
+                href={playUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`block text-xs mt-2 underline break-all ${isDark ? "text-indigo-400" : "text-indigo-600"}`}
+              >
+                {playUrl}
+              </a>
             </div>
 
             <div className={`w-full ${cardBg} rounded-xl p-4`}>
