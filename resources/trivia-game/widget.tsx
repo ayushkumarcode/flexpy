@@ -34,7 +34,6 @@ const propSchema = z.object({
   currentQuestionData: questionSchema.nullable().optional(),
   players: z.array(playerSchema),
   leaderboard: z.array(playerSchema),
-  playBaseUrl: z.string().optional(),
 });
 
 export const widgetMetadata: WidgetMetadata = {
@@ -46,9 +45,6 @@ export const widgetMetadata: WidgetMetadata = {
       connectDomains: [
         "https://hcddekcllbhiiazrcmhi.supabase.co",
         "wss://hcddekcllbhiiazrcmhi.supabase.co",
-      ],
-      resourceDomains: [
-        "https://api.qrserver.com",
       ],
     },
     autoResize: true,
@@ -124,9 +120,7 @@ const TriviaGame: React.FC = () => {
   const textPrimary = isDark ? "text-white" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-400" : "text-gray-500";
 
-  const baseUrl = props.playBaseUrl || "https://ayushkumarcode.github.io/flexpy";
-  const playUrl = `${baseUrl}/play.html?join=${props.joinCode}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=svg&data=${encodeURIComponent(playUrl)}`;
+  // No external URLs needed — players join in their own Claude chat
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
@@ -143,22 +137,22 @@ const TriviaGame: React.FC = () => {
           </p>
         </div>
 
-        {/* Waiting State - QR Code + Player List */}
+        {/* Waiting State - Join Code + Player List */}
         {props.status === "waiting" && (
           <div className="flex flex-col items-center gap-6">
-            <div className={`${cardBg} rounded-xl p-6 text-center`}>
-              <img src={qrUrl} alt="Join QR Code" className="w-48 h-48 mx-auto mb-4 rounded-lg" />
-              <p className={`font-mono text-2xl font-bold ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+            <div className={`${cardBg} rounded-xl p-6 text-center w-full`}>
+              <p className={`text-sm font-semibold uppercase tracking-wide ${textSecondary} mb-3`}>
+                Join code
+              </p>
+              <p className={`font-mono text-5xl font-bold tracking-widest ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
                 {props.joinCode}
               </p>
-              <a
-                href={playUrl}
-                target="_blank"
-                rel="noreferrer"
-                className={`block text-xs mt-2 underline break-all ${isDark ? "text-indigo-400" : "text-indigo-600"}`}
-              >
-                {playUrl}
-              </a>
+              <p className={`text-sm mt-4 ${textSecondary}`}>
+                Players: open Claude, add this MCP, then say
+              </p>
+              <p className={`text-sm font-mono font-semibold mt-1 ${isDark ? "text-white" : "text-gray-800"}`}>
+                "join game {props.joinCode} as [your name]"
+              </p>
             </div>
 
             <div className={`w-full ${cardBg} rounded-xl p-4`}>

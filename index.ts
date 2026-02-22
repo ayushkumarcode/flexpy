@@ -301,7 +301,7 @@ server.tool(
 server.tool(
   {
     name: "create-game",
-    description: "Create a trivia game. AI should generate fun/funny questions and pass them in. Returns a game widget with a QR code for players to join.",
+    description: "Create a trivia game. AI should generate fun/funny questions and pass them in. Returns a host game widget. Players join in their own Claude chat by saying 'join game [CODE] as [name]'.",
     schema: z.object({
       title: z.string().describe("Game title, e.g. 'YC Partners Roast Quiz'"),
       questions: z.array(z.object({
@@ -350,9 +350,8 @@ server.tool(
           totalQuestions: questions.length,
           players: [],
           leaderboard: [],
-          playBaseUrl: process.env.PLAY_BASE_URL || "https://ayushkumarcode.github.io/flexpy",
         },
-        output: text(`Game "${title}" created with ${questions.length} questions! Join code: ${joinCode}. Players can scan the QR code or go to the join URL.`),
+        output: text(`Game "${title}" created! Join code: ${joinCode}. Players: open Claude, add this MCP, then say "join game ${joinCode} as [your name]".`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -500,6 +499,149 @@ server.tool(
           leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
         },
         output: text(`Game "${game.title}" - ${game.status}. ${players?.length || 0} players. Question ${game.current_question + 1}/${questions?.length || 0}.`),
+      });
+    } catch (err) {
+      return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+);
+
+server.tool(
+  {
+    name: "join-game",
+    description: "Join a trivia game using a join code. Returns a player widget with live answer buttons — everything happens in chat, no external URL needed.",
+    schema: z.object({
+      join_code: z.string().describe("The 4-character game join code, e.g. 'AB12'"),
+      player_name: z.string().describe("The player's display name"),
+    }),
+    widget: {
+      name: "trivia-player",
+      invoking: "Joining game...",
+      invoked: "Joined! Waiting for host to start.",
+    },
+  },
+  async ({ join_code, player_name }) => {
+    try {
+      const { data: game, error: gameErr } = await supabase
+        .from("games")
+        .select("*")
+        .eq("join_code", join_code.toUpperCase())
+        .single();
+
+      if (gameErr || !game) return error(`Game not found with code: ${join_code}`);
+
+      const { data: player, error: playerErr } = await supabase
+        .from("players")
+        .insert({ game_id: game.id, name: player_name, score: 0 })
+        .select()
+        .single();
+
+      if (playerErr || !player) return error(`Failed to join game: ${playerErr?.message}`);
+
+      let currentQuestionData = null;
+      if (game.status === "active") {
+        const { data: questions } = await supabase
+          .from("questions")
+          .select("*")
+          .eq("game_id", game.id)
+          .order("order_index");
+        currentQuestionData = questions?.[game.current_question] || null;
+      }
+
+      return widget({
+        props: {
+          playerId: player.id,
+          playerName: player_name,
+          gameId: game.id,
+          joinCode: game.join_code,
+          gameTitle: game.title,
+          status: game.status,
+          currentQuestion: game.current_question,
+          currentQuestionData,
+          myScore: 0,
+          hasAnswered: false,
+        },
+        output: text(`${player_name} joined "${game.title}"! Player ID: ${player.id}. Game is ${game.status}. Tap an answer button when the question appears.`),
+      });
+    } catch (err) {
+      return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+);
+
+server.tool(
+  {
+    name: "submit-answer",
+    description: "Submit a player's answer for the current trivia question. Called automatically when a player taps an answer button in the widget.",
+    schema: z.object({
+      game_id: z.string().describe("Game ID"),
+      player_id: z.string().describe("Player ID from join-game"),
+      question_id: z.string().describe("ID of the question being answered"),
+      selected_index: z.number().min(0).max(3).describe("Answer option index (0-3) that the player selected"),
+    }),
+    widget: {
+      name: "trivia-player",
+      invoking: "Submitting answer...",
+      invoked: "Answer submitted!",
+    },
+  },
+  async ({ game_id, player_id, question_id, selected_index }) => {
+    try {
+      const { data: game } = await supabase.from("games").select("*").eq("id", game_id).single();
+      if (!game) return error("Game not found");
+
+      const { data: question } = await supabase.from("questions").select("*").eq("id", question_id).single();
+      if (!question) return error("Question not found");
+
+      // Check if already answered
+      const { data: existing } = await supabase
+        .from("answers")
+        .select("id")
+        .eq("player_id", player_id)
+        .eq("question_id", question_id)
+        .maybeSingle();
+      if (existing) return error("Already answered this question");
+
+      const isCorrect = selected_index === question.correct_index;
+      const points = isCorrect ? 200 : 0;
+
+      await supabase.from("answers").insert({
+        game_id,
+        player_id,
+        question_id,
+        selected_index,
+        is_correct: isCorrect,
+      });
+
+      const { data: playerRow } = await supabase.from("players").select("name, score").eq("id", player_id).single();
+      const newScore = (playerRow?.score || 0) + points;
+      await supabase.from("players").update({ score: newScore }).eq("id", player_id);
+
+      const { data: questions } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("game_id", game_id)
+        .order("order_index");
+      const currentQuestionData = game.status === "active" ? (questions?.[game.current_question] || null) : null;
+
+      return widget({
+        props: {
+          playerId: player_id,
+          playerName: playerRow?.name || "",
+          gameId: game_id,
+          joinCode: game.join_code,
+          gameTitle: game.title,
+          status: game.status,
+          currentQuestion: game.current_question,
+          currentQuestionData,
+          myScore: newScore,
+          hasAnswered: true,
+          selectedAnswer: selected_index,
+          wasCorrect: isCorrect,
+          correctAnswer: question.correct_index,
+          funFact: question.fun_fact || "",
+        },
+        output: text(`${isCorrect ? "Correct! +200 points" : "Wrong!"}${question.fun_fact ? ` Fun fact: ${question.fun_fact}` : ""} Score: ${newScore}`),
       });
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
