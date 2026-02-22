@@ -177,17 +177,9 @@ server.tool(
       const { data: allItems } = await supabase.from("items").select("*").eq("board_id", resolvedBoardId).order("created_at");
       const { data: members } = await supabase.from("members").select("*").eq("board_id", resolvedBoardId);
 
-      return widget({
-        props: {
-          boardId: board_id,
-          shareCode: board?.share_code || "",
-          title: board?.title || "",
-          columns: board?.columns || [],
-          items: allItems || [],
-          members: members || [],
-        },
-        output: text(`Added ${newItems.length} item(s) to ${column}.`),
-      });
+      // REALTIME: board widget picks up new items via items subscription — no new iframe
+      // REVERT: replace with widget() block that was here (returns full board props)
+      return text(`Added ${newItems.length} item(s) to ${column}.`);
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -278,17 +270,9 @@ server.tool(
       const { data: items } = await supabase.from("items").select("*").eq("board_id", board_id).order("created_at");
       const { data: members } = await supabase.from("members").select("*").eq("board_id", board_id);
 
-      return widget({
-        props: {
-          boardId: board_id,
-          shareCode: board?.share_code || "",
-          title: board?.title || "",
-          columns: board?.columns || [],
-          items: items || [],
-          members: members || [],
-        },
-        output: text("Item updated."),
-      });
+      // REALTIME: board widget picks up update via items subscription — no new iframe
+      // REVERT: replace with widget() block that was here
+      return text("Item updated.");
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -377,24 +361,9 @@ server.tool(
     try {
       await supabase.from("games").update({ status: "active", current_question: 0 }).eq("id", game_id);
 
-      const { data: game } = await supabase.from("games").select("*").eq("id", game_id).single();
-      const { data: questions } = await supabase.from("questions").select("*").eq("game_id", game_id).order("order_index");
-      const { data: players } = await supabase.from("players").select("*").eq("game_id", game_id);
-
-      return widget({
-        props: {
-          gameId: game_id,
-          joinCode: game?.join_code || "",
-          title: game?.title || "",
-          status: "active",
-          currentQuestion: 0,
-          totalQuestions: questions?.length || 0,
-          currentQuestionData: questions?.[0] || null,
-          players: players || [],
-          leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
-        },
-        output: text("Game started! Question 1 is live."),
-      });
+      // REALTIME: host widget picks up via games subscription — no new iframe
+      // REVERT: replace with widget() block that was here (fetches game/questions/players and returns full props)
+      return text("Game started! Question 1 is live.");
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -427,39 +396,15 @@ server.tool(
         await supabase.from("games").update({ status: "finished", current_question: nextQ }).eq("id", game_id);
         const { data: players } = await supabase.from("players").select("*").eq("game_id", game_id);
 
-        return widget({
-          props: {
-            gameId: game_id,
-            joinCode: game.join_code,
-            title: game.title,
-            status: "finished",
-            currentQuestion: nextQ,
-            totalQuestions: questions?.length || 0,
-            currentQuestionData: null,
-            players: players || [],
-            leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
-          },
-          output: text("Game over! Here's the final leaderboard."),
-        });
+        // REALTIME: widget updates via games subscription — no new iframe
+        // REVERT: replace with widget() block that was here
+        return text("Game over! The host widget will show the final leaderboard.");
       }
 
       await supabase.from("games").update({ current_question: nextQ }).eq("id", game_id);
-      const { data: players } = await supabase.from("players").select("*").eq("game_id", game_id);
-
-      return widget({
-        props: {
-          gameId: game_id,
-          joinCode: game.join_code,
-          title: game.title,
-          status: "active",
-          currentQuestion: nextQ,
-          totalQuestions: questions?.length || 0,
-          currentQuestionData: questions?.[nextQ] || null,
-          players: players || [],
-          leaderboard: (players || []).sort((a: any, b: any) => b.score - a.score),
-        },
-        output: text(`Question ${nextQ + 1} of ${questions?.length}!`),
-      });
+      // REALTIME: widget updates via games subscription — no new iframe
+      // REVERT: replace with widget() block that was here (fetches players and returns full props)
+      return text(`Question ${nextQ + 1} of ${questions?.length}!`);
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -625,25 +570,9 @@ server.tool(
         .order("order_index");
       const currentQuestionData = game.status === "active" ? (questions?.[game.current_question] || null) : null;
 
-      return widget({
-        props: {
-          playerId: player_id,
-          playerName: playerRow?.name || "",
-          gameId: game_id,
-          joinCode: game.join_code,
-          gameTitle: game.title,
-          status: game.status,
-          currentQuestion: game.current_question,
-          currentQuestionData,
-          myScore: newScore,
-          hasAnswered: true,
-          selectedAnswer: selected_index,
-          wasCorrect: isCorrect,
-          correctAnswer: question.correct_index,
-          funFact: question.fun_fact || "",
-        },
-        output: text(`${isCorrect ? "Correct! +200 points" : "Wrong!"}${question.fun_fact ? ` Fun fact: ${question.fun_fact}` : ""} Score: ${newScore}`),
-      });
+      // REALTIME: player widget computes result instantly from local data — no new iframe
+      // REVERT: replace with widget() block that was here (drives wasCorrect/score/funFact via props)
+      return text(`Answer recorded. ${isCorrect ? "Correct! +200 points" : "Wrong!"} Score: ${newScore}`);
     } catch (err) {
       return error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     }

@@ -156,6 +156,13 @@ const TriviaPlayer: React.FC = () => {
     if (hasAnswered || !questionData) return;
     setSelected(index);
     setHasAnswered(true);
+    // REALTIME: compute result immediately from local data — instant feedback, no round-trip
+    // REVERT: remove these 4 lines and let submit-answer props drive wasCorrect/score/funFact
+    const correct = index === questionData.correct_index;
+    setWasCorrect(correct);
+    if (correct) setMyScore(prev => prev + 200);
+    setFunFact(questionData.fun_fact || "");
+    // Still records answer in DB (server now returns text(), not a new widget)
     sendFollowUpMessage?.(
       `Submit answer ${index} for game ${props.gameId}, player ${props.playerId}, question ${questionData.id}`
     );

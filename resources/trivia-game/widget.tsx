@@ -60,11 +60,20 @@ const TriviaGame: React.FC = () => {
   const [players, setPlayers] = useState<z.infer<typeof playerSchema>[]>([]);
   const [answerCount, setAnswerCount] = useState(0);
 
+  // REALTIME STATE: game status/question driven by Supabase, not re-rendered props
+  // REVERT: remove these 3 lines and use props.status/currentQuestion/currentQuestionData directly
+  const [gameStatus, setGameStatus] = useState(props?.status || "waiting");
+  const [currentQ, setCurrentQ] = useState(props?.currentQuestion ?? 0);
+  const [currentQData, setCurrentQData] = useState(props?.currentQuestionData ?? null);
+
   useEffect(() => {
     if (props?.players) setPlayers(props.players);
-  }, [props?.players]);
+    // Sync initial props into local state on first render
+    if (props?.status) setGameStatus(props.status);
+    if (props?.currentQuestion !== undefined) setCurrentQ(props.currentQuestion);
+    if (props?.currentQuestionData !== undefined) setCurrentQData(props.currentQuestionData ?? null);
+  }, [props?.players, props?.status, props?.currentQuestion, props?.currentQuestionData]);
 
-  // Subscribe to realtime player joins and answers
   useEffect(() => {
     if (!props?.gameId) return;
 
@@ -93,15 +102,29 @@ const TriviaGame: React.FC = () => {
       }, () => {
         setAnswerCount(prev => prev + 1);
       })
+      // REALTIME: listen for game state changes so start-game/next-question don't need to re-render widget
+      // REVERT: remove this .on() block
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "games",
+        filter: `id=eq.${props.gameId}`,
+      }, async (payload) => {
+        const game = payload.new as any;
+        setGameStatus(game.status);
+        setCurrentQ(game.current_question);
+        setAnswerCount(0);
+        const { data: qs } = await sb
+          .from("questions")
+          .select("*")
+          .eq("game_id", props.gameId)
+          .order("order_index");
+        setCurrentQData(qs?.[game.current_question] ?? null);
+      })
       .subscribe();
 
     return () => { sb.removeChannel(channel); };
   }, [props?.gameId]);
-
-  // Reset answer count when question changes
-  useEffect(() => {
-    setAnswerCount(0);
-  }, [props?.currentQuestion]);
 
   if (isPending || !props) {
     return (
@@ -121,8 +144,6 @@ const TriviaGame: React.FC = () => {
   const textPrimary = isDark ? "text-white" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-400" : "text-gray-500";
 
-  // No external URLs needed — players join in their own Claude chat
-
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
   return (
@@ -132,14 +153,14 @@ const TriviaGame: React.FC = () => {
         <div className="text-center mb-6">
           <h1 className={`text-3xl font-bold ${textPrimary}`}>{props.title}</h1>
           <p className={`text-sm mt-1 ${textSecondary}`}>
-            {props.status === "waiting" ? "Waiting for players..." :
-             props.status === "finished" ? "Game Over!" :
-             `Question ${props.currentQuestion + 1} of ${props.totalQuestions}`}
+            {gameStatus === "waiting" ? "Waiting for players..." :
+             gameStatus === "finished" ? "Game Over!" :
+             `Question ${currentQ + 1} of ${props.totalQuestions}`}
           </p>
         </div>
 
-        {/* Waiting State - Join Code + Player List */}
-        {props.status === "waiting" && (
+        {/* Waiting State */}
+        {gameStatus === "waiting" && (
           <div className="flex flex-col items-center gap-6">
             <div className={`${cardBg} rounded-xl p-6 text-center w-full`}>
               <p className={`text-sm font-semibold uppercase tracking-wide ${textSecondary} mb-3`}>
@@ -182,18 +203,16 @@ const TriviaGame: React.FC = () => {
           </div>
         )}
 
-        {/* Active State - Current Question + Leaderboard */}
-        {props.status === "active" && props.currentQuestionData && (
+        {/* Active State */}
+        {gameStatus === "active" && currentQData && (
           <div className="space-y-6">
             <div className={`${cardBg} rounded-xl p-6`}>
               <h2 className={`text-xl font-bold mb-4 ${textPrimary}`}>
-                {props.currentQuestionData.question_text}
+                {currentQData.question_text}
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                {props.currentQuestionData.options.map((opt, i) => {
-                  const colors = [
-                    "bg-red-500", "bg-blue-500", "bg-yellow-500", "bg-green-500"
-                  ];
+                {currentQData.options.map((opt, i) => {
+                  const colors = ["bg-red-500", "bg-blue-500", "bg-yellow-500", "bg-green-500"];
                   return (
                     <div key={i} className={`${colors[i]} text-white rounded-lg p-4 text-center font-semibold`}>
                       {opt}
@@ -206,7 +225,6 @@ const TriviaGame: React.FC = () => {
               </div>
             </div>
 
-            {/* Leaderboard */}
             <div className={`${cardBg} rounded-xl p-4`}>
               <h3 className={`font-semibold mb-3 ${textPrimary}`}>Leaderboard</h3>
               <div className="space-y-2">
@@ -233,8 +251,8 @@ const TriviaGame: React.FC = () => {
           </div>
         )}
 
-        {/* Finished State - Final Leaderboard */}
-        {props.status === "finished" && (
+        {/* Finished State */}
+        {gameStatus === "finished" && (
           <div className="space-y-6">
             <div className="text-center py-4">
               <span className="text-6xl">🏆</span>
@@ -243,7 +261,6 @@ const TriviaGame: React.FC = () => {
               </h2>
               <p className={`${textSecondary}`}>with {sortedPlayers[0]?.score || 0} points</p>
             </div>
-
             <div className={`${cardBg} rounded-xl p-4`}>
               <h3 className={`font-semibold mb-3 ${textPrimary}`}>Final Standings</h3>
               <div className="space-y-2">
