@@ -57,7 +57,7 @@ type Props = z.infer<typeof propSchema>;
 type Item = z.infer<typeof itemSchema>;
 
 const TripPlanner: React.FC = () => {
-  const { props, isPending, theme, sendFollowUpMessage } = useWidget<Props>();
+  const { props, isPending, theme, sendFollowUpMessage, openExternal } = useWidget<Props>();
   const isDark = theme === "dark";
   const [items, setItems] = useState<Item[]>([]);
   const [members, setMembers] = useState<z.infer<typeof memberSchema>[]>([]);
@@ -199,10 +199,12 @@ const TripPlanner: React.FC = () => {
                         <span className={`text-xs ${textSecondary}`}>{item.added_by}</span>
                       </div>
                       {item.link && (
-                        <a href={item.link} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-indigo-500 hover:underline">
+                        <button
+                          onClick={() => openExternal?.(item.link!)}
+                          className="text-xs text-indigo-500 hover:underline"
+                        >
                           View
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
