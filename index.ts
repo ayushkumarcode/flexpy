@@ -129,7 +129,7 @@ server.tool(
     name: "add-items",
     description: "Add one or more items to a board column. Use this to add flight options, hotel options, gift ideas, etc.",
     schema: z.object({
-      board_id: z.string().describe("Board ID"),
+      board_id: z.string().describe("Board ID (UUID) OR share code (e.g. 'U9A8'). Both work."),
       column: z.string().describe("Column name to add items to, e.g. 'Flights'"),
       items: z.array(z.object({
         title: z.string().describe("Item title, e.g. 'United $650 direct'"),
@@ -147,9 +147,18 @@ server.tool(
   },
   async ({ board_id, column, items: newItems }) => {
     try {
+      // Accept either a UUID or a share code
+      let resolvedBoardId = board_id;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(board_id);
+      if (!isUuid) {
+        const { data: found } = await supabase.from("boards").select("id").eq("share_code", board_id.toUpperCase()).single();
+        if (!found) return error(`Board not found with ID or share code: ${board_id}`);
+        resolvedBoardId = found.id;
+      }
+
       const color = randomColor();
       const rows = newItems.map(item => ({
-        board_id,
+        board_id: resolvedBoardId,
         column_name: column,
         title: item.title,
         description: item.description || "",
@@ -163,9 +172,9 @@ server.tool(
       if (insertErr) return error(`Failed to add items: ${insertErr.message}`);
 
       // Fetch full board state
-      const { data: board } = await supabase.from("boards").select("*").eq("id", board_id).single();
-      const { data: allItems } = await supabase.from("items").select("*").eq("board_id", board_id).order("created_at");
-      const { data: members } = await supabase.from("members").select("*").eq("board_id", board_id);
+      const { data: board } = await supabase.from("boards").select("*").eq("id", resolvedBoardId).single();
+      const { data: allItems } = await supabase.from("items").select("*").eq("board_id", resolvedBoardId).order("created_at");
+      const { data: members } = await supabase.from("members").select("*").eq("board_id", resolvedBoardId);
 
       return widget({
         props: {
@@ -189,7 +198,7 @@ server.tool(
     name: "get-board",
     description: "Get the current state of a board. Use this to analyze items, compare options, or make recommendations based on what everyone has added.",
     schema: z.object({
-      board_id: z.string().describe("Board ID"),
+      board_id: z.string().describe("Board ID (UUID) OR share code (e.g. 'U9A8'). Both work."),
     }),
     widget: {
       name: "trip-planner",
@@ -199,15 +208,19 @@ server.tool(
   },
   async ({ board_id }) => {
     try {
-      const { data: board } = await supabase.from("boards").select("*").eq("id", board_id).single();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(board_id);
+      const { data: board } = isUuid
+        ? await supabase.from("boards").select("*").eq("id", board_id).single()
+        : await supabase.from("boards").select("*").eq("share_code", board_id.toUpperCase()).single();
       if (!board) return error("Board not found");
+      const resolvedBoardId = board.id;
 
-      const { data: items } = await supabase.from("items").select("*").eq("board_id", board_id).order("created_at");
-      const { data: members } = await supabase.from("members").select("*").eq("board_id", board_id);
+      const { data: items } = await supabase.from("items").select("*").eq("board_id", resolvedBoardId).order("created_at");
+      const { data: members } = await supabase.from("members").select("*").eq("board_id", resolvedBoardId);
 
       return widget({
         props: {
-          boardId: board_id,
+          boardId: resolvedBoardId,
           shareCode: board.share_code,
           title: board.title,
           columns: board.columns,
